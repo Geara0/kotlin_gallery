@@ -1,4 +1,4 @@
-package com.example.myapplication.utils
+package com.example.myapplication.adapters
 
 import android.content.Context
 import android.view.View

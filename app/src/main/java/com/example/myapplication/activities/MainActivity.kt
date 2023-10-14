@@ -7,7 +7,7 @@ import android.widget.AdapterView.OnItemClickListener
 import android.widget.GridView
 import androidx.activity.ComponentActivity
 import com.example.myapplication.R
-import com.example.myapplication.utils.ImageAdapter
+import com.example.myapplication.adapters.ImageAdapter
 
 
 class MainActivity : ComponentActivity() {

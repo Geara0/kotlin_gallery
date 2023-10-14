@@ -5,7 +5,7 @@ import android.os.Bundle
 import android.view.View
 import android.widget.ImageView
 import com.example.myapplication.R
-import com.example.myapplication.utils.ImageAdapter
+import com.example.myapplication.adapters.ImageAdapter
 
 
 class ImageViewActivity : Activity() {
