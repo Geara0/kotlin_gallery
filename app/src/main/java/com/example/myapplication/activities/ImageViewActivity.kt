@@ -1,25 +1,37 @@
 package com.example.myapplication.activities
 
-import android.app.Activity
 import android.os.Bundle
-import android.view.View
-import android.widget.ImageView
-import com.example.myapplication.R
-import com.example.myapplication.adapters.ImageAdapter
+import androidx.activity.ComponentActivity
+import androidx.activity.compose.setContent
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
+import com.example.myapplication.ui.theme.MyApplicationTheme
 
-
-class ImageViewActivity : Activity() {
-    public override fun onCreate(savedInstanceState: Bundle?) {
+class ImageViewActivity : ComponentActivity() {
+    override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.image_view)
 
-        // get intent data
         val intent = intent
+        val imageResId = intent.extras?.getInt("id") ?: 0
 
-        // Selected image id
-        val position = intent.extras!!.getInt("id")
-        val imageAdapter = ImageAdapter(this)
-        val imageView = findViewById<View>(R.id.full_image_view) as ImageView
-        imageView.setImageResource(imageAdapter.mThumbIds[position])
+        setContent {
+            MyApplicationTheme(darkTheme = true) {
+                ImageViewContent(imageResId)
+            }
+        }
+    }
+
+    @Composable
+    fun ImageViewContent(imageResId: Int) {
+        Image(
+            painter = painterResource(id = imageResId),
+            contentDescription = null,
+            modifier = Modifier.fillMaxSize(),
+            contentScale = ContentScale.Fit
+        )
     }
 }
