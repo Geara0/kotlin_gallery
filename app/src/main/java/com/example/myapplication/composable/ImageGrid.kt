@@ -1,11 +1,11 @@
 package com.example.myapplication.composable
 
-import android.content.Context
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
@@ -14,7 +14,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
-import com.example.myapplication.activities.MainActivity
 
 
 @Composable
@@ -23,7 +22,8 @@ fun ImageGrid(
     onImageClick: (Int) -> Unit
 ) {
     LazyVerticalGrid(
-        columns = GridCells.Fixed(3)
+        columns = GridCells.Fixed(3),
+        contentPadding = PaddingValues(all = 8.dp),
     ) {
         items(images) { image ->
             Image(
@@ -31,7 +31,7 @@ fun ImageGrid(
                 contentDescription = null,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(100.dp)
+                    .size(100.dp)
                     .padding(8.dp)
                     .clickable {
                         onImageClick(image)
