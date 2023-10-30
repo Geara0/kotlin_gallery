@@ -1,5 +1,7 @@
 package com.example.myapplication.screens
 
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.fillMaxSize
@@ -15,13 +17,23 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.platform.LocalContext
 import androidx.navigation.NavController
 import com.example.myapplication.ui.theme.MyApplicationTheme
+import java.io.File
 
 @Composable
-fun ImageScreen(navController: NavController, imageResId: Int) {
+fun ImageScreen(navController: NavController) {
+    val context = LocalContext.current
+
+    val path = context.getExternalFilesDir(null)!!.absolutePath
+    val imagePath = "$path/tempFileName.jpg"
+
+    val image = BitmapFactory.decodeFile(imagePath)
+    File(imagePath).deleteOnExit() // Delete temp image
+
     MyApplicationTheme(darkTheme = isSystemInDarkTheme()) {
         Scaffold(
             topBar = {
@@ -43,7 +55,7 @@ fun ImageScreen(navController: NavController, imageResId: Int) {
                     modifier = Modifier.padding(padding),
                     color = MaterialTheme.colorScheme.background
                 ) {
-                    ImageViewContent(imageResId)
+                    ImageViewContent(image)
                 }
             }
         )
@@ -51,9 +63,9 @@ fun ImageScreen(navController: NavController, imageResId: Int) {
 }
 
 @Composable
-private fun ImageViewContent(imageResId: Int) {
+private fun ImageViewContent(imageRes: Bitmap) {
     Image(
-        painter = painterResource(id = imageResId),
+        bitmap = imageRes.asImageBitmap(),
         contentDescription = null,
         modifier = Modifier.fillMaxSize(),
         contentScale = ContentScale.Fit
