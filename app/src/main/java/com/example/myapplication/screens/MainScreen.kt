@@ -1,10 +1,7 @@
 package com.example.myapplication.screens
 
 import android.graphics.Bitmap
-import android.graphics.ImageDecoder
 import android.net.Uri
-import android.os.Build
-import android.provider.MediaStore
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.isSystemInDarkTheme
@@ -23,19 +20,16 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
-import androidx.documentfile.provider.DocumentFile
 import androidx.navigation.NavController
 import com.example.myapplication.composable.ImageGrid
+import com.example.myapplication.models.MainViewModel
 import com.example.myapplication.ui.theme.MyApplicationTheme
 import java.io.File
 import java.io.FileOutputStream
 
 @Composable
-fun MainScreen(navController: NavController) {
+fun MainScreen(navController: NavController, viewModel: MainViewModel) {
     val context = LocalContext.current
-    val bitmap = remember {
-        mutableStateOf<List<Bitmap>?>(null)
-    }
     val result = remember { mutableStateOf<Uri?>(null) }
     val b = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocumentTree()) {
         result.value = it
@@ -62,45 +56,25 @@ fun MainScreen(navController: NavController) {
                                 Text(text = "Select")
                             }
                             result.value?.let {
-                                if (Build.VERSION.SDK_INT < 28) {
-                                    val a = DocumentFile.fromTreeUri(context, result.value!!)
-                                    bitmap.value = a?.listFiles()
-                                        ?.map { e ->
-                                            MediaStore.Images.Media.getBitmap(
-                                                context.contentResolver,
-                                                e.uri
-                                            )
-                                        }
-                                } else {
-                                    val a = DocumentFile.fromTreeUri(context, result.value!!)
+                                viewModel.setBitmapList(context, it)
+                            }
 
-                                    bitmap.value = a?.listFiles()?.map { e ->
-                                        ImageDecoder.decodeBitmap(
-                                            ImageDecoder.createSource(
-                                                context.contentResolver, e.uri
-                                            )
-                                        )
-                                    }
-                                }
+                            viewModel.bitmapList?.let { btm ->
+                                ImageGrid(
+                                    images = btm,
+                                ) { index ->
+                                    val tempFile = File(path, "tempFileName.jpg")
+                                    val fOut = FileOutputStream(tempFile)
+                                    btm[index].compress(Bitmap.CompressFormat.JPEG, 100, fOut)
+                                    fOut.close()
 
-                                bitmap.value?.let { btm ->
-                                    ImageGrid(
-                                        images = btm,
-                                        onImageClick = { image ->
-                                            val tempFile = File(path, "tempFileName.jpg")
-                                            val fOut = FileOutputStream(tempFile)
-                                            image.compress(Bitmap.CompressFormat.JPEG, 100, fOut)
-                                            fOut.close()
-
-                                            navController.navigate("image")
-                                        },
-                                    )
+                                    navController.navigate("image/$index")
                                 }
                             }
                         }
                     }
                 }
-            },
+            }
         )
     }
 }

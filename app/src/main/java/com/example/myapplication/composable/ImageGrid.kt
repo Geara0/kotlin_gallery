@@ -20,7 +20,7 @@ import androidx.compose.ui.unit.dp
 @Composable
 fun ImageGrid(
     images: List<Bitmap>?,
-    onImageClick: (Bitmap) -> Unit
+    onImageClick: (Int) -> Unit
 ) {
     if (images == null) return
 
@@ -28,19 +28,20 @@ fun ImageGrid(
         columns = GridCells.Fixed(3),
         contentPadding = PaddingValues(all = 8.dp),
     ) {
-        items(images) { image ->
+        items(images.indices.toList()) { index ->
             Image(
-                bitmap = image.asImageBitmap(),
+                bitmap = images[index].asImageBitmap(),
                 contentDescription = null,
                 modifier = Modifier
                     .fillMaxWidth()
                     .size(100.dp)
                     .padding(8.dp)
                     .clickable {
-                        onImageClick(image)
+                        onImageClick(index)
                     },
                 contentScale = ContentScale.Crop
             )
         }
     }
 }
+
