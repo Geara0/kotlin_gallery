@@ -1,5 +1,6 @@
 package com.example.myapplication
 
+import androidx.compose.animation.slideInHorizontally
 import androidx.compose.runtime.Composable
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -23,13 +24,29 @@ fun Navigator() {
             )
         }
         composable(
-            "image/{index}"
+            "image/{index}",
+            enterTransition = {
+                slideInHorizontally { 1000 }
+            }
         ) { backStackEntry ->
             val index = backStackEntry.arguments?.getString("index")?.toIntOrNull() ?: 0
             ImageScreen(
                 navController = navController,
                 viewModel = mainViewModel,
-                imageIndex = index
+                imageIndex = index,
+            )
+        }
+        composable(
+            "backImage/{index}",
+            enterTransition = {
+                slideInHorizontally { -1000 }
+            }
+        ) { backStackEntry ->
+            val index = backStackEntry.arguments?.getString("index")?.toIntOrNull() ?: 0
+            ImageScreen(
+                navController = navController,
+                viewModel = mainViewModel,
+                imageIndex = index,
             )
         }
     }

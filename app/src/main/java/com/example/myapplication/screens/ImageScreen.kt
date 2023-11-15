@@ -21,6 +21,7 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -32,11 +33,14 @@ import androidx.compose.ui.input.pointer.PointerEventType
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.example.myapplication.models.MainViewModel
 import com.example.myapplication.ui.theme.MyApplicationTheme
+import java.io.File
+import java.io.FileOutputStream
 import kotlin.math.abs
 import kotlin.math.round
 
@@ -64,7 +68,13 @@ fun ImageScreen(navController: NavController, viewModel: MainViewModel, imageInd
                     color = MaterialTheme.colorScheme.background
                 ) {
                     viewModel.bitmapList?.let { btm ->
-                        ImageViewContent(btm[imageIndex])
+                        ImageViewContent(
+                            i = imageIndex,
+                            btm[imageIndex],
+                            left = if (imageIndex > 0) btm[imageIndex - 1] else null,
+                            right = if (imageIndex < btm.size - 1) btm[imageIndex + 1] else null,
+                            navController = navController,
+                        )
                     }
                 }
             }
@@ -73,7 +83,14 @@ fun ImageScreen(navController: NavController, viewModel: MainViewModel, imageInd
 }
 
 @Composable
-private fun ImageViewContent(imageRes: Bitmap) {
+private fun ImageViewContent(
+    i: Int,
+    imageRes: Bitmap,
+    left: Bitmap?,
+    right: Bitmap?,
+    navController: NavController,
+) {
+    val context = LocalContext.current
     val density = LocalDensity.current
     var height by remember {
         mutableStateOf(0.dp)
@@ -92,6 +109,10 @@ private fun ImageViewContent(imageRes: Bitmap) {
         mutableStateOf(Offset.Zero)
     }
 
+    var move by remember {
+        mutableIntStateOf(0)
+    }
+
     BoxWithConstraints {
         val state = rememberTransformableState { zoomChange, panChange, rotationChange ->
             // Scale
@@ -102,32 +123,52 @@ private fun ImageViewContent(imageRes: Bitmap) {
             val extraHeight = (scale - 1) * height.value
             val maxX = extraWidth / 2
             val maxY = extraHeight / 2
-            when (round(abs(rotation).coerceIn(0f, 360f) / 90)) {
+
+            val rotated = round(abs(rotation).coerceIn(0f, 360f) / 90)
+
+            var l = if (rotated % 2 == 0f) -maxX else -maxY
+            var r = if (rotated % 2 == 0f) maxX else maxY
+            if (left != null) {
+                l = Float.MIN_VALUE
+            }
+
+            if (right != null) {
+                r = Float.MAX_VALUE
+            }
+
+            when (rotated) {
                 0f ->
                     offset = Offset(
-                        x = (offset.x + panChange.x * scale).coerceIn(-maxX, maxX),
+                        x = (offset.x + panChange.x * scale).coerceIn(l, r),
                         y = (offset.y + panChange.y * scale).coerceIn(-maxY, maxY),
                     )
 
                 1f ->
                     offset = Offset(
-                        x = (offset.y + panChange.y * scale).coerceIn(-maxY, maxY),
+                        x = (offset.y + panChange.y * scale).coerceIn(l, r),
                         y = (offset.x + panChange.x * scale).coerceIn(-maxX, maxX),
                     )
 
                 2f ->
                     offset = Offset(
-                        x = -(offset.x + panChange.x * scale).coerceIn(-maxX, maxX),
+                        x = -(offset.x + panChange.x * scale).coerceIn(l, r),
                         y = -(offset.y + panChange.y * scale).coerceIn(-maxY, maxY),
                     )
 
                 3f ->
                     offset = Offset(
-                        x = -(offset.y + panChange.y * scale).coerceIn(-maxY, maxY),
+                        x = -(offset.y + panChange.y * scale).coerceIn(l, r),
                         y = -(offset.x + panChange.x * scale).coerceIn(-maxX, maxX),
                     )
             }
 
+            move = if (offset.x > maxX + 100) {
+                1
+            } else if (-offset.x > maxX + 100) {
+                -1
+            } else {
+                0
+            }
 
             // Rotation
             rotation += rotationChange
@@ -154,6 +195,25 @@ private fun ImageViewContent(imageRes: Bitmap) {
                         while (true) {
                             val event = awaitPointerEvent()
                             if (event.type == PointerEventType.Release) {
+                                if (move == 1 && right != null) {
+                                    val path = context.getExternalFilesDir(null)!!.absolutePath
+                                    val tempFile = File(path, "tempFileName.jpg")
+                                    val fOut = FileOutputStream(tempFile)
+                                    right.compress(Bitmap.CompressFormat.JPEG, 100, fOut)
+                                    fOut.close()
+
+                                    navController.popBackStack()
+                                    navController.navigate("backImage/${i - 1}")
+                                } else if (move == -1 && left != null) {
+                                    val path = context.getExternalFilesDir(null)!!.absolutePath
+                                    val tempFile = File(path, "tempFileName.jpg")
+                                    val fOut = FileOutputStream(tempFile)
+                                    left.compress(Bitmap.CompressFormat.JPEG, 100, fOut)
+                                    fOut.close()
+
+                                    navController.popBackStack()
+                                    navController.navigate("image/${i + 1}")
+                                }
                                 rotation = round(abs(rotation) / 90) * 90
                             }
                         }
