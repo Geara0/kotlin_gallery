@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.BottomAppBar
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -44,17 +45,29 @@ fun MainScreen(navController: NavController, viewModel: MainViewModel) {
                     title = { Text("Kotlin gallery") },
                 )
             },
+            bottomBar = {
+                BottomAppBar(
+                    content = {
+                        Button(
+                            onClick = {
+                                b.launch(Uri.parse("image/*"))
+                            },
+                            modifier = Modifier.weight(1f),
+                            content = {
+                                Column {
+                                    Text(text = "Select")
+                                }
+                            }
+                        )
+                    }
+                )
+            },
             content = { padding ->
                 Surface(
                     modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background
                 ) {
                     Box(modifier = Modifier.padding(padding)) {
                         Column {
-                            Button(onClick = {
-                                b.launch(Uri.parse("image/*"))
-                            }) {
-                                Text(text = "Select")
-                            }
                             result.value?.let {
                                 viewModel.setBitmapList(context, it)
                             }
