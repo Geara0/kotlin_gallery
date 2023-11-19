@@ -1,6 +1,9 @@
 package com.example.myapplication.screens
 
+import android.app.Activity
 import android.graphics.Bitmap
+import android.view.View
+import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.gestures.rememberTransformableState
@@ -8,9 +11,11 @@ import androidx.compose.foundation.gestures.transformable
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material3.BottomAppBar
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -46,8 +51,27 @@ import kotlin.math.round
 
 @Composable
 fun ImageScreen(navController: NavController, viewModel: MainViewModel, imageIndex: Int) {
+    var isAppBarVisible by remember {
+        mutableStateOf(true)
+    }
+    val appBarHeight = animateDpAsState(if (isAppBarVisible) 56.dp else 0.dp, label = "")
+
+    var isBottomAppBarVisible by remember {
+        mutableStateOf(true)
+    }
+    val bottomAppBarHeight by animateDpAsState(
+        targetValue = if (isBottomAppBarVisible) 56.dp else 0.dp,
+        label = ""
+    )
+    val context = LocalContext.current
     MyApplicationTheme(darkTheme = isSystemInDarkTheme()) {
         Scaffold(
+            bottomBar = {
+                BottomAppBar(
+                    content = {},
+                    modifier = Modifier.height(bottomAppBarHeight)
+                )
+            },
             topBar = {
                 TopAppBar(
                     title = { Text("Image") },
@@ -59,7 +83,8 @@ fun ImageScreen(navController: NavController, viewModel: MainViewModel, imageInd
                                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
                         }
-                    }
+                    },
+                    modifier = Modifier.height(appBarHeight.value)
                 )
             },
             content = { padding ->
@@ -74,6 +99,12 @@ fun ImageScreen(navController: NavController, viewModel: MainViewModel, imageInd
                             left = if (imageIndex > 0) btm[imageIndex - 1] else null,
                             right = if (imageIndex < btm.size - 1) btm[imageIndex + 1] else null,
                             navController = navController,
+                            onImageTap = {
+                                // Переключаем видимость Баров при тапе на изображение
+                                isAppBarVisible = !isAppBarVisible
+                                isBottomAppBarVisible = !isBottomAppBarVisible
+                                toggleStatusBar(activity = context as Activity, isVisible = isAppBarVisible)
+                            }
                         )
                     }
                 }
@@ -89,6 +120,7 @@ private fun ImageViewContent(
     left: Bitmap?,
     right: Bitmap?,
     navController: NavController,
+    onImageTap: () -> Unit
 ) {
     val context = LocalContext.current
     val density = LocalDensity.current
@@ -162,12 +194,10 @@ private fun ImageViewContent(
                     )
             }
 
-            move = if (offset.x > maxX + 100) {
-                1
-            } else if (-offset.x > maxX + 100) {
-                -1
-            } else {
-                0
+            move = when {
+                offset.x > maxX + 100 -> 1
+                -offset.x > maxX + 100 -> -1
+                else -> 0
             }
 
             // Rotation
@@ -214,6 +244,9 @@ private fun ImageViewContent(
                                     navController.popBackStack()
                                     navController.navigate("image/${i + 1}")
                                 }
+                                else {
+                                    onImageTap()
+                                }
                                 rotation = round(abs(rotation) / 90) * 90
                             }
                         }
@@ -224,3 +257,18 @@ private fun ImageViewContent(
     }
 }
 
+fun toggleStatusBar(activity: Activity, isVisible: Boolean) {
+    if (isVisible) {
+        activity.window.decorView.systemUiVisibility = View.SYSTEM_UI_FLAG_VISIBLE
+    } else {
+        activity.window.decorView.systemUiVisibility = (
+                View.SYSTEM_UI_FLAG_FULLSCREEN
+                        or View.SYSTEM_UI_FLAG_LAYOUT_STABLE
+                        or View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
+                        or View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
+                        or View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
+                        or View.SYSTEM_UI_FLAG_FULLSCREEN
+                        or View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
+                )
+    }
+}
