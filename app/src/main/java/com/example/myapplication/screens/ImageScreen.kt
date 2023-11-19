@@ -196,7 +196,7 @@ private fun ImageViewContent(
 
             move = when {
                 offset.x > maxX + 100 -> 1
-                -offset.x > maxX + 100 -> -1
+                -offset.x > maxX - 100 -> -1
                 else -> 0
             }
 
