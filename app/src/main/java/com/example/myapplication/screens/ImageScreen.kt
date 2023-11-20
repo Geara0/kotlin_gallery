@@ -95,15 +95,16 @@ fun ImageScreen(navController: NavController, viewModel: MainViewModel, imageInd
                     viewModel.bitmapList?.let { btm ->
                         ImageViewContent(
                             i = imageIndex,
-                            btm[imageIndex],
-                            left = if (imageIndex > 0) btm[imageIndex - 1] else null,
-                            right = if (imageIndex < btm.size - 1) btm[imageIndex + 1] else null,
+                            btm = btm,
                             navController = navController,
                             onImageTap = {
                                 // Переключаем видимость Баров при тапе на изображение
                                 isAppBarVisible = !isAppBarVisible
                                 isBottomAppBarVisible = !isBottomAppBarVisible
-                                toggleStatusBar(activity = context as Activity, isVisible = isAppBarVisible)
+                                toggleStatusBar(
+                                    activity = context as Activity,
+                                    isVisible = isAppBarVisible,
+                                )
                             }
                         )
                     }
@@ -116,12 +117,14 @@ fun ImageScreen(navController: NavController, viewModel: MainViewModel, imageInd
 @Composable
 private fun ImageViewContent(
     i: Int,
-    imageRes: Bitmap,
-    left: Bitmap?,
-    right: Bitmap?,
+    btm: List<Bitmap>,
     navController: NavController,
     onImageTap: () -> Unit
 ) {
+    val imageRes = btm[i]
+    val left = if (i > 0) btm[i - 1] else null
+    val right = if (i < btm.size - 1) btm[i + 1] else null
+
     val context = LocalContext.current
     val density = LocalDensity.current
     var height by remember {
@@ -144,6 +147,9 @@ private fun ImageViewContent(
     var move by remember {
         mutableIntStateOf(0)
     }
+    var rotatedPrev by remember {
+        mutableFloatStateOf(0f);
+    }
 
     BoxWithConstraints {
         val state = rememberTransformableState { zoomChange, panChange, rotationChange ->
@@ -157,6 +163,7 @@ private fun ImageViewContent(
             val maxY = extraHeight / 2
 
             val rotated = round(abs(rotation).coerceIn(0f, 360f) / 90)
+            rotatedPrev = rotated
 
             var l = if (rotated % 2 == 0f) -maxX else -maxY
             var r = if (rotated % 2 == 0f) maxX else maxY
@@ -194,10 +201,14 @@ private fun ImageViewContent(
                     )
             }
 
-            move = when {
-                offset.x > maxX + 100 -> 1
-                -offset.x > maxX - 100 -> -1
-                else -> 0
+            move = if (rotatedPrev != rotated) {
+                when {
+                    offset.x > maxX + 100 -> 1
+                    -offset.x > maxX - 100 -> -1
+                    else -> 0
+                }
+            } else {
+                0
             }
 
             // Rotation
@@ -225,16 +236,7 @@ private fun ImageViewContent(
                         while (true) {
                             val event = awaitPointerEvent()
                             if (event.type == PointerEventType.Release) {
-                                if (move == 1 && right != null) {
-                                    val path = context.getExternalFilesDir(null)!!.absolutePath
-                                    val tempFile = File(path, "tempFileName.jpg")
-                                    val fOut = FileOutputStream(tempFile)
-                                    right.compress(Bitmap.CompressFormat.JPEG, 100, fOut)
-                                    fOut.close()
-
-                                    navController.popBackStack()
-                                    navController.navigate("backImage/${i - 1}")
-                                } else if (move == -1 && left != null) {
+                                if (move == 1 && left != null) {
                                     val path = context.getExternalFilesDir(null)!!.absolutePath
                                     val tempFile = File(path, "tempFileName.jpg")
                                     val fOut = FileOutputStream(tempFile)
@@ -242,9 +244,17 @@ private fun ImageViewContent(
                                     fOut.close()
 
                                     navController.popBackStack()
+                                    navController.navigate("backImage/${i - 1}")
+                                } else if (move == -1 && right != null) {
+                                    val path = context.getExternalFilesDir(null)!!.absolutePath
+                                    val tempFile = File(path, "tempFileName.jpg")
+                                    val fOut = FileOutputStream(tempFile)
+                                    right.compress(Bitmap.CompressFormat.JPEG, 100, fOut)
+                                    fOut.close()
+
+                                    navController.popBackStack()
                                     navController.navigate("image/${i + 1}")
-                                }
-                                else {
+                                } else {
                                     onImageTap()
                                 }
                                 rotation = round(abs(rotation) / 90) * 90
