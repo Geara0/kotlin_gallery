@@ -167,11 +167,11 @@ private fun ImageViewContent(
 
             var l = if (rotated % 2 == 0f) -maxX else -maxY
             var r = if (rotated % 2 == 0f) maxX else maxY
-            if (left != null) {
-                l = Float.MIN_VALUE
+            if (right != null) {
+                l = -Float.MAX_VALUE
             }
 
-            if (right != null) {
+            if (left != null) {
                 r = Float.MAX_VALUE
             }
 
@@ -201,14 +201,20 @@ private fun ImageViewContent(
                     )
             }
 
-            move = if (rotatedPrev != rotated) {
-                when {
-                    offset.x > maxX + 100 -> 1
-                    -offset.x > maxX - 100 -> -1
-                    else -> 0
-                }
+            println("${offset.x}")
+            println("${-offset.x} > ${maxX + 100}: ${-offset.x > maxX + 100}")
+            println("${-offset.x} < ${maxX - 100}: ${-offset.x < maxX - 100}")
+
+            move = if (offset.x < 0 && -offset.x > maxX + 100) {
+                1
+            } else if (offset.x > 0 && -offset.x < maxX - 100) {
+                -1
             } else {
                 0
+            }
+
+            if (rotatedPrev != rotated) {
+                move = 0
             }
 
             // Rotation
@@ -236,7 +242,7 @@ private fun ImageViewContent(
                         while (true) {
                             val event = awaitPointerEvent()
                             if (event.type == PointerEventType.Release) {
-                                if (move == 1 && left != null) {
+                                if (move == -1 && left != null) {
                                     val path = context.getExternalFilesDir(null)!!.absolutePath
                                     val tempFile = File(path, "tempFileName.jpg")
                                     val fOut = FileOutputStream(tempFile)
@@ -245,7 +251,7 @@ private fun ImageViewContent(
 
                                     navController.popBackStack()
                                     navController.navigate("backImage/${i - 1}")
-                                } else if (move == -1 && right != null) {
+                                } else if (move == 1 && right != null) {
                                     val path = context.getExternalFilesDir(null)!!.absolutePath
                                     val tempFile = File(path, "tempFileName.jpg")
                                     val fOut = FileOutputStream(tempFile)
@@ -254,7 +260,7 @@ private fun ImageViewContent(
 
                                     navController.popBackStack()
                                     navController.navigate("image/${i + 1}")
-                                } else {
+                                } else if (move == 0) {
                                     onImageTap()
                                 }
                                 rotation = round(abs(rotation) / 90) * 90
