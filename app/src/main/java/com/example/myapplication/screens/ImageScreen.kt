@@ -1,3 +1,5 @@
+@file:OptIn(ExperimentalMaterialApi::class)
+
 package com.example.myapplication.screens
 
 import android.app.Activity
@@ -9,17 +11,23 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.gestures.rememberTransformableState
 import androidx.compose.foundation.gestures.transformable
 import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material.BottomSheetScaffold
+import androidx.compose.material.ExperimentalMaterialApi
+import androidx.compose.material.TextButton
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material3.BottomAppBar
+import androidx.compose.material.rememberBottomSheetScaffoldState
+import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
@@ -29,9 +37,15 @@ import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.BlendMode
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ColorFilter
+import androidx.compose.ui.graphics.ColorMatrix
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.PointerEventType
@@ -44,47 +58,165 @@ import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.example.myapplication.models.MainViewModel
 import com.example.myapplication.ui.theme.MyApplicationTheme
+import kotlinx.coroutines.launch
 import java.io.File
 import java.io.FileOutputStream
 import kotlin.math.abs
 import kotlin.math.round
 
+
 @Composable
 fun ImageScreen(navController: NavController, viewModel: MainViewModel, imageIndex: Int) {
-    var isAppBarVisible by remember {
+    var isSystemChromeVisible by remember {
         mutableStateOf(true)
     }
-    val appBarHeight = animateDpAsState(if (isAppBarVisible) 56.dp else 0.dp, label = "")
+    val appBarHeight = animateDpAsState(if (isSystemChromeVisible) 56.dp else 0.dp, label = "")
 
-    var isBottomAppBarVisible by remember {
-        mutableStateOf(true)
-    }
-    val bottomAppBarHeight by animateDpAsState(
-        targetValue = if (isBottomAppBarVisible) 56.dp else 0.dp,
-        label = ""
-    )
     val context = LocalContext.current
+
+    val scope = rememberCoroutineScope()
+    val scaffoldState = rememberBottomSheetScaffoldState()
+
+    var filter by remember {
+        mutableStateOf(ColorFilter.colorMatrix(ColorMatrix()))
+    }
+
     MyApplicationTheme(darkTheme = isSystemInDarkTheme()) {
-        Scaffold(
-            bottomBar = {
-                BottomAppBar(
-                    content = {},
-                    modifier = Modifier.height(bottomAppBarHeight)
-                )
+        BottomSheetScaffold(scaffoldState = scaffoldState,
+            sheetBackgroundColor = MaterialTheme.colorScheme.surface,
+            sheetPeekHeight = 0.dp,
+            sheetGesturesEnabled = false,
+            sheetContent = {
+                Box(
+                    Modifier.fillMaxWidth(), contentAlignment = Alignment.Center,
+                ) {
+                    Text(
+                        "Filters",
+                        color = MaterialTheme.colorScheme.onSurface,
+                        style = MaterialTheme.typography.headlineMedium,
+                    )
+                }
+                Column(
+                    Modifier
+                        .fillMaxWidth()
+                        .padding(10.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    TextButton(
+                        onClick = {
+                            filter =
+                                ColorFilter.colorMatrix(ColorMatrix().apply { setToSaturation(0f) })
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        Text(
+                            "Black & White",
+                            color = MaterialTheme.colorScheme.onSurface,
+                        )
+                    }
+                    TextButton(
+
+                        onClick = {
+                            val contrast = 2f // 0f..10f (1 should be default)
+                            val brightness = -180f // -255f..255f (0 should be default)
+                            val colorMatrix = floatArrayOf(
+                                contrast, 0f, 0f, 0f, brightness,
+                                0f, contrast, 0f, 0f, brightness,
+                                0f, 0f, contrast, 0f, brightness,
+                                0f, 0f, 0f, 1f, 0f
+                            )
+
+                            filter =
+                                ColorFilter.colorMatrix(ColorMatrix(colorMatrix))
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        Text(
+                            "High contrast",
+                            color = MaterialTheme.colorScheme.onSurface,
+                        )
+                    }
+                    TextButton(
+                        onClick = {
+                            val colorMatrix = floatArrayOf(
+                                -1f, 0f, 0f, 0f, 255f,
+                                0f, -1f, 0f, 0f, 255f,
+                                0f, 0f, -1f, 0f, 255f,
+                                0f, 0f, 0f, 1f, 0f
+                            )
+
+                            filter =
+                                ColorFilter.colorMatrix(ColorMatrix(colorMatrix))
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        Text(
+                            "Inversion",
+                            color = MaterialTheme.colorScheme.onSurface,
+                        )
+                    }
+                    TextButton(
+                        onClick = {
+                            filter =
+                                ColorFilter.colorMatrix(ColorMatrix().apply { setToSaturation(0f) })
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        Text(
+                            "Blur",
+                            color = MaterialTheme.colorScheme.onSurface,
+                        )
+                    }
+                    TextButton(
+                        onClick = {
+                            filter =
+                                ColorFilter.tint(Color.Blue, blendMode = BlendMode.ColorBurn)
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        Text(
+                            "Blue",
+                            color = MaterialTheme.colorScheme.onSurface,
+                        )
+                    }
+                    Button(onClick = {
+                        // TODO: apply filter to image
+                        filter = ColorFilter.colorMatrix(ColorMatrix())
+                        scope.launch { scaffoldState.bottomSheetState.collapse() }
+                    }, modifier = Modifier.padding(all = 10.dp), content = {
+                        Text(text = "Apply")
+                    })
+
+                }
             },
             topBar = {
-                TopAppBar(
-                    title = { Text("Image") },
-                    navigationIcon = {
-                        IconButton(onClick = { navController.popBackStack() }) {
-                            Icon(
-                                Icons.Default.ArrowBack,
-                                "back",
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
+                TopAppBar(title = { Text("Image") }, navigationIcon = {
+                    IconButton(onClick = { navController.popBackStack() }) {
+                        Icon(
+                            Icons.Default.ArrowBack,
+                            "back",
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                }, actions = {
+                    Button(onClick = {
+                        if (scaffoldState.bottomSheetState.isExpanded) {
+                            filter =
+                                ColorFilter.colorMatrix(ColorMatrix())
+                            scope.launch { scaffoldState.bottomSheetState.collapse() }
+                        } else {
+                            scope.launch { scaffoldState.bottomSheetState.expand() }
                         }
-                    },
-                    modifier = Modifier.height(appBarHeight.value)
+                    }, modifier = Modifier.padding(all = 10.dp), content = {
+                        val text =
+                            if (scaffoldState.bottomSheetState.isExpanded) {
+                                "Close filters"
+                            } else {
+                                "Add filter"
+                            }
+                        Text(text = text)
+                    })
+                }, modifier = Modifier.height(appBarHeight.value)
                 )
             },
             content = { padding ->
@@ -99,18 +231,17 @@ fun ImageScreen(navController: NavController, viewModel: MainViewModel, imageInd
                             navController = navController,
                             onImageTap = {
                                 // Переключаем видимость Баров при тапе на изображение
-                                isAppBarVisible = !isAppBarVisible
-                                isBottomAppBarVisible = !isBottomAppBarVisible
+                                isSystemChromeVisible = !isSystemChromeVisible
                                 toggleStatusBar(
                                     activity = context as Activity,
-                                    isVisible = isAppBarVisible,
+                                    isVisible = isSystemChromeVisible,
                                 )
-                            }
+                            },
+                            filter = filter,
                         )
                     }
                 }
-            }
-        )
+            })
     }
 }
 
@@ -119,7 +250,8 @@ private fun ImageViewContent(
     i: Int,
     btm: List<Bitmap>,
     navController: NavController,
-    onImageTap: () -> Unit
+    onImageTap: () -> Unit,
+    filter: ColorFilter
 ) {
     val imageRes = btm[i]
     val left = if (i > 0) btm[i - 1] else null
@@ -176,29 +308,25 @@ private fun ImageViewContent(
             }
 
             when (rotated) {
-                0f ->
-                    offset = Offset(
-                        x = (offset.x + panChange.x * scale).coerceIn(l, r),
-                        y = (offset.y + panChange.y * scale).coerceIn(-maxY, maxY),
-                    )
+                0f -> offset = Offset(
+                    x = (offset.x + panChange.x * scale).coerceIn(l, r),
+                    y = (offset.y + panChange.y * scale).coerceIn(-maxY, maxY),
+                )
 
-                1f ->
-                    offset = Offset(
-                        x = (offset.y + panChange.y * scale).coerceIn(l, r),
-                        y = (offset.x + panChange.x * scale).coerceIn(-maxX, maxX),
-                    )
+                1f -> offset = Offset(
+                    x = (offset.y + panChange.y * scale).coerceIn(l, r),
+                    y = (offset.x + panChange.x * scale).coerceIn(-maxX, maxX),
+                )
 
-                2f ->
-                    offset = Offset(
-                        x = -(offset.x + panChange.x * scale).coerceIn(l, r),
-                        y = -(offset.y + panChange.y * scale).coerceIn(-maxY, maxY),
-                    )
+                2f -> offset = Offset(
+                    x = -(offset.x + panChange.x * scale).coerceIn(l, r),
+                    y = -(offset.y + panChange.y * scale).coerceIn(-maxY, maxY),
+                )
 
-                3f ->
-                    offset = Offset(
-                        x = -(offset.y + panChange.y * scale).coerceIn(l, r),
-                        y = -(offset.x + panChange.x * scale).coerceIn(-maxX, maxX),
-                    )
+                3f -> offset = Offset(
+                    x = -(offset.y + panChange.y * scale).coerceIn(l, r),
+                    y = -(offset.x + panChange.x * scale).coerceIn(-maxX, maxX),
+                )
             }
 
             println("${offset.x}")
@@ -221,9 +349,9 @@ private fun ImageViewContent(
             rotation += rotationChange
         }
 
-        Image(
-            bitmap = imageRes.asImageBitmap(),
+        Image(bitmap = imageRes.asImageBitmap(),
             contentDescription = null,
+            colorFilter = filter,
             modifier = Modifier
                 .fillMaxSize()
                 .graphicsLayer {
@@ -277,14 +405,7 @@ fun toggleStatusBar(activity: Activity, isVisible: Boolean) {
     if (isVisible) {
         activity.window.decorView.systemUiVisibility = View.SYSTEM_UI_FLAG_VISIBLE
     } else {
-        activity.window.decorView.systemUiVisibility = (
-                View.SYSTEM_UI_FLAG_FULLSCREEN
-                        or View.SYSTEM_UI_FLAG_LAYOUT_STABLE
-                        or View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
-                        or View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
-                        or View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
-                        or View.SYSTEM_UI_FLAG_FULLSCREEN
-                        or View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
-                )
+        activity.window.decorView.systemUiVisibility =
+            (View.SYSTEM_UI_FLAG_FULLSCREEN or View.SYSTEM_UI_FLAG_LAYOUT_STABLE or View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION or View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN or View.SYSTEM_UI_FLAG_HIDE_NAVIGATION or View.SYSTEM_UI_FLAG_FULLSCREEN or View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY)
     }
 }
