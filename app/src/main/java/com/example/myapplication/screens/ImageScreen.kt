@@ -158,12 +158,12 @@ fun ImageScreen(navController: NavController, viewModel: MainViewModel, imageInd
                     TextButton(
                         onClick = {
                             filter =
-                                ColorFilter.colorMatrix(ColorMatrix().apply { setToSaturation(0f) })
+                                ColorFilter.tint(Color.Blue, blendMode = BlendMode.Luminosity)
                         },
                         modifier = Modifier.fillMaxWidth(),
                     ) {
                         Text(
-                            "Blur",
+                            "Blue lumen",
                             color = MaterialTheme.colorScheme.onSurface,
                         )
                     }
@@ -175,7 +175,7 @@ fun ImageScreen(navController: NavController, viewModel: MainViewModel, imageInd
                         modifier = Modifier.fillMaxWidth(),
                     ) {
                         Text(
-                            "Blue",
+                            "Blue burn",
                             color = MaterialTheme.colorScheme.onSurface,
                         )
                     }
