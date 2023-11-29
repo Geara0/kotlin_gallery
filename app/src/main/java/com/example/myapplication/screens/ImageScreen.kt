@@ -294,7 +294,8 @@ private fun ImageViewContent(
             val maxX = extraWidth / 2
             val maxY = extraHeight / 2
 
-            val rotated = round(abs(rotation).coerceIn(0f, 360f) / 90)
+            var rotated = round(abs(rotation) / 90)
+            rotated -= round(rotated / 4) * 4
             rotatedPrev = rotated
 
             var l = if (rotated % 2 == 0f) -maxX else -maxY
@@ -307,6 +308,8 @@ private fun ImageViewContent(
                 r = Float.MAX_VALUE
             }
 
+            val sign = if (rotation >= 0) 1 else -1
+
             when (rotated) {
                 0f -> offset = Offset(
                     x = (offset.x + panChange.x * scale).coerceIn(l, r),
@@ -314,24 +317,20 @@ private fun ImageViewContent(
                 )
 
                 1f -> offset = Offset(
-                    x = (offset.y + panChange.y * scale).coerceIn(l, r),
-                    y = (offset.x + panChange.x * scale).coerceIn(-maxX, maxX),
+                    x = (offset.x - sign * panChange.y * scale).coerceIn(l, r),
+                    y = (offset.y + sign *  panChange.x * scale).coerceIn(-maxX, maxX),
                 )
 
                 2f -> offset = Offset(
-                    x = -(offset.x + panChange.x * scale).coerceIn(l, r),
-                    y = -(offset.y + panChange.y * scale).coerceIn(-maxY, maxY),
+                    x = (offset.x - panChange.x * scale).coerceIn(l, r),
+                    y = (offset.y - panChange.y * scale).coerceIn(-maxY, maxY),
                 )
 
                 3f -> offset = Offset(
-                    x = -(offset.y + panChange.y * scale).coerceIn(l, r),
-                    y = -(offset.x + panChange.x * scale).coerceIn(-maxX, maxX),
+                    x = (offset.x + sign * panChange.y * scale).coerceIn(l, r),
+                    y = (offset.y - sign * panChange.x * scale).coerceIn(-maxX, maxX),
                 )
             }
-
-            println("${offset.x}")
-            println("${-offset.x} > ${maxX + 100}: ${-offset.x > maxX + 100}")
-            println("${-offset.x} < ${maxX - 100}: ${-offset.x < maxX - 100}")
 
             move = if (offset.x < 0 && -offset.x > maxX + 100) {
                 1
@@ -341,7 +340,7 @@ private fun ImageViewContent(
                 0
             }
 
-            if (rotatedPrev != rotated) {
+            if (rotationChange != 0f) {
                 move = 0
             }
 
@@ -391,7 +390,7 @@ private fun ImageViewContent(
                                 } else if (move == 0) {
                                     onImageTap()
                                 }
-                                rotation = round(abs(rotation) / 90) * 90
+                                rotation = round(rotation / 90) * 90
                             }
                         }
                     }
