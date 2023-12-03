@@ -189,11 +189,14 @@ fun ImageScreen(navController: NavController, viewModel: MainViewModel, imageInd
                         // TODO: apply filter to image
 
                         val filteredBitmap = viewModel.bitmapList?.get(imageIndex)
-                            ?.let { viewModel.fileNames?.get(imageIndex)?.let { it1 ->
-                                applyFilterToBitmap(it, filter.asAndroidColorFilter(),
-                                    it1, context
-                                )
-                            } }
+                            ?.let {
+                                viewModel.fileNames?.get(imageIndex)?.let { it1 ->
+                                    applyFilterToBitmap(
+                                        it, filter.asAndroidColorFilter(),
+                                        it1, context
+                                    )
+                                }
+                            }
                         if (filteredBitmap != null) {
                             viewModel.bitmapList?.set(imageIndex, filteredBitmap)
                         }
@@ -246,6 +249,10 @@ fun ImageScreen(navController: NavController, viewModel: MainViewModel, imageInd
                             btm = btm,
                             navController = navController,
                             onImageTap = {
+                                filter = ColorFilter.colorMatrix(ColorMatrix())
+                                if (scaffoldState.bottomSheetState.isExpanded) {
+                                    scope.launch { scaffoldState.bottomSheetState.collapse() }
+                                }
                                 isSystemChromeVisible = !isSystemChromeVisible
                                 toggleStatusBar(
                                     activity = context as Activity,
@@ -333,7 +340,7 @@ private fun ImageViewContent(
 
                 1f -> offset = Offset(
                     x = (offset.x - sign * panChange.y * scale).coerceIn(l, r),
-                    y = (offset.y + sign *  panChange.x * scale).coerceIn(-maxX, maxX),
+                    y = (offset.y + sign * panChange.x * scale).coerceIn(-maxX, maxX),
                 )
 
                 2f -> offset = Offset(
