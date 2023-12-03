@@ -3,7 +3,12 @@
 package com.example.myapplication.screens
 
 import android.app.Activity
+import android.content.Context
 import android.graphics.Bitmap
+import android.graphics.Canvas
+import android.graphics.Paint
+import android.net.Uri
+import android.util.Log
 import android.view.View
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
@@ -46,6 +51,7 @@ import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.ColorMatrix
+import androidx.compose.ui.graphics.asAndroidColorFilter
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.PointerEventType
@@ -181,7 +187,20 @@ fun ImageScreen(navController: NavController, viewModel: MainViewModel, imageInd
                     }
                     Button(onClick = {
                         // TODO: apply filter to image
-                        filter = ColorFilter.colorMatrix(ColorMatrix())
+
+                        val filteredBitmap = viewModel.bitmapList?.get(imageIndex)
+                            ?.let {
+                                viewModel.fileNames?.get(imageIndex)?.let { it1 ->
+                                    applyFilterToBitmap(
+                                        it, filter.asAndroidColorFilter(),
+                                        it1, context
+                                    )
+                                }
+                            }
+                        if (filteredBitmap != null) {
+                            viewModel.bitmapList?.set(imageIndex, filteredBitmap)
+                        }
+                        viewModel.rootDirUri?.let { viewModel.setBitmapList(context, it) }
                         scope.launch { scaffoldState.bottomSheetState.collapse() }
                     }, modifier = Modifier.padding(all = 10.dp), content = {
                         Text(text = "Apply")
@@ -230,7 +249,10 @@ fun ImageScreen(navController: NavController, viewModel: MainViewModel, imageInd
                             btm = btm,
                             navController = navController,
                             onImageTap = {
-                                // Переключаем видимость Баров при тапе на изображение
+                                filter = ColorFilter.colorMatrix(ColorMatrix())
+                                if (scaffoldState.bottomSheetState.isExpanded) {
+                                    scope.launch { scaffoldState.bottomSheetState.collapse() }
+                                }
                                 isSystemChromeVisible = !isSystemChromeVisible
                                 toggleStatusBar(
                                     activity = context as Activity,
@@ -280,7 +302,7 @@ private fun ImageViewContent(
         mutableIntStateOf(0)
     }
     var rotatedPrev by remember {
-        mutableFloatStateOf(0f);
+        mutableFloatStateOf(0f)
     }
 
     BoxWithConstraints {
@@ -318,7 +340,7 @@ private fun ImageViewContent(
 
                 1f -> offset = Offset(
                     x = (offset.x - sign * panChange.y * scale).coerceIn(l, r),
-                    y = (offset.y + sign *  panChange.x * scale).coerceIn(-maxX, maxX),
+                    y = (offset.y + sign * panChange.x * scale).coerceIn(-maxX, maxX),
                 )
 
                 2f -> offset = Offset(
@@ -406,5 +428,37 @@ fun toggleStatusBar(activity: Activity, isVisible: Boolean) {
     } else {
         activity.window.decorView.systemUiVisibility =
             (View.SYSTEM_UI_FLAG_FULLSCREEN or View.SYSTEM_UI_FLAG_LAYOUT_STABLE or View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION or View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN or View.SYSTEM_UI_FLAG_HIDE_NAVIGATION or View.SYSTEM_UI_FLAG_FULLSCREEN or View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY)
+    }
+}
+
+private fun applyFilterToBitmap(
+    bitmap: Bitmap,
+    filter: android.graphics.ColorFilter,
+    uri: Uri,
+    context: Context
+): Bitmap? {
+    val mutableBitmap = bitmap.copy(Bitmap.Config.ARGB_8888, true)
+
+    val canvas = Canvas(mutableBitmap)
+    val paint = Paint().apply {
+        colorFilter = filter
+    }
+    canvas.drawBitmap(mutableBitmap, 0f, 0f, paint)
+
+    saveBitmapToFile(mutableBitmap, uri, context)
+    return mutableBitmap
+}
+
+private fun saveBitmapToFile(bitmap: Bitmap, uri: Uri, context: Context) {
+    try {
+        val outputStream = context.contentResolver.openOutputStream(uri)
+        if (outputStream != null) {
+            bitmap.compress(Bitmap.CompressFormat.JPEG, 100, outputStream)
+        }
+        outputStream?.close()
+        Log.i("tag1", "image saved success")
+    } catch (e: Exception) {
+        Log.e("tag1", "Failed to save image: ${e.localizedMessage}")
+        e.printStackTrace()
     }
 }
